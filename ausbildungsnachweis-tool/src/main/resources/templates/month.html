@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Monatsübersicht</title>
+    <!-- Bootstrap einbinden – macht die Seite schön ohne eigenes CSS -->
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+</head>
+<body class="bg-light">
+<div class="container mt-4">
+
+    <h2 class="mb-3">📅 Monatsübersicht</h2>
+
+    <!--
+        Filter-Formular: GET-Anfrage – Jahr und Monat werden als
+        URL-Parameter übergeben, z.B. /month?year=2026&month=3
+    -->
+    <form method="get" action="/month" class="row g-2 align-items-end mb-3">
+        <div class="col-auto">
+            <label class="form-label">Jahr</label>
+            <!-- th:value füllt das Feld mit dem aktuellen Wert aus dem Controller -->
+            <input type="number" name="year" th:value="${year}"
+                   class="form-control" style="width:100px">
+        </div>
+        <div class="col-auto">
+            <label class="form-label">Monat</label>
+            <input type="number" name="month" min="1" max="12"
+                   th:value="${month}" class="form-control" style="width:80px">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Anzeigen</button>
+        </div>
+        <div class="col-auto">
+            <!--
+                PDF-Export: übergibt Jahr und Monat an den PdfExportController.
+                Der Browser lädt dann automatisch die fertige PDF-Datei herunter.
+            -->
+            <a th:href="@{/export/pdf(year=${year},month=${month})}"
+               class="btn btn-danger">📥 PDF herunterladen</a>
+        </div>
+    </form>
+
+    <!-- Zusammenfassung der Netto-Stunden für den gewählten Monat -->
+    <div class="alert alert-info">
+        <strong>Gesamtstunden (Netto):</strong>
+        <span th:text="${#numbers.formatDecimal(sumHours, 1, 2)}">0</span> Stunden
+    </div>
+
+    <table class="table table-bordered table-hover bg-white shadow-sm">
+        <thead class="table-dark">
+        <tr>
+            <th>Datum</th>
+            <th>Start</th>
+            <th>Ende</th>
+            <th>Pause (min)</th>
+            <th>Netto (h)</th>
+            <th>Tätigkeit</th>
+        </tr>
+        </thead>
+        <tbody>
+
+        <!-- Schleife: für jeden Eintrag im gewählten Monat eine Zeile -->
+        <tr th:each="e : ${entries}">
+            <td th:text="${e.datum}">-</td>
+            <td th:text="${e.startzeit}">-</td>
+            <td th:text="${e.endzeit}">-</td>
+            <td th:text="${e.pauseMin}">0</td>
+            <!-- formatDecimal zeigt z.B. 7,50 statt 7.5 -->
+            <td th:text="${#numbers.formatDecimal(e.nettoStunden, 1, 2)}">0</td>
+            <td th:text="${e.taetigkeit}">-</td>
+        </tr>
+
+        <!-- Wird angezeigt wenn in diesem Monat keine Einträge vorhanden sind -->
+        <tr th:if="${#lists.isEmpty(entries)}">
+            <td colspan="6" class="text-center text-muted">
+                Keine Einträge für diesen Monat.
+            </td>
+        </tr>
+
+        </tbody>
+    </table>
+
+    <a th:href="@{/entries}" class="btn btn-outline-secondary">← Alle Einträge</a>
+    <a th:href="@{/}"        class="btn btn-outline-secondary">← Startseite</a>
+
+</div>
+</body>
+</html>

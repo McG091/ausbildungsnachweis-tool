@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Ausbildungsnachweis-Tool</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-body text-center">
+            <h1 class="mb-3">📋 Ausbildungsnachweis-Tool</h1>
+
+            <!-- Zeigt den eingeloggten Benutzernamen an -->
+            <p class="text-muted mb-4">
+                Eingeloggt als: <strong sec:authentication="name">-</strong>
+            </p>
+
+            <div class="d-grid gap-2 col-6 mx-auto">
+                <a th:href="@{/entry/new}"
+                   class="btn btn-primary">➕ Neuer Eintrag</a>
+                <a th:href="@{/entries}"
+                   class="btn btn-outline-secondary">📄 Alle Einträge</a>
+                <a th:href="@{/month}"
+                   class="btn btn-outline-secondary">📅 Monatsübersicht</a>
+
+                <!-- Logout: muss POST sein – Spring Security Pflicht -->
+                <form th:action="@{/logout}" method="post" class="mt-2">
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        🚪 Logout
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Login – Ausbildungsnachweis</title>
+    <!-- Bootstrap: lädt das CSS-Framework für schöne Seiten -->
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h4 class="card-title text-center mb-4">🔐 Login</h4>
+
+                    <!-- Wird angezeigt wenn Benutzername oder Passwort falsch -->
+                    <div th:if="${param.error}" class="alert alert-danger">
+                        Falscher Benutzername oder Passwort.
+                    </div>
+
+                    <!-- Wird angezeigt nach erfolgreichem Logout -->
+                    <div th:if="${param.logout}" class="alert alert-success">
+                        Erfolgreich ausgeloggt.
+                    </div>
+
+                    <!--
+                        WICHTIG: action="/login", name="username" und name="password"
+                        NICHT ändern – Spring Security erwartet genau diese Namen!
+                    -->
+                    <form th:action="@{/login}" method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Benutzername</label>
+                            <input type="text" name="username"
+                                   class="form-control" required autofocus>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Passwort</label>
+                            <input type="password" name="password"
+                                   class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            Einloggen
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

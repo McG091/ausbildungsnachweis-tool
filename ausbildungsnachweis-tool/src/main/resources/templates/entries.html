@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Alle Einträge</title>
+    <!-- Bootstrap einbinden – macht die Seite schön ohne eigenes CSS -->
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+</head>
+<body class="bg-light">
+<div class="container mt-4">
+
+    <!-- Überschrift und Button nebeneinander -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>📄 Alle Einträge</h2>
+        <a th:href="@{/entry/new}" class="btn btn-primary">➕ Neuer Eintrag</a>
+    </div>
+
+    <table class="table table-bordered table-hover bg-white shadow-sm">
+        <thead class="table-dark">
+        <tr>
+            <th>Datum</th>
+            <th>Start</th>
+            <th>Ende</th>
+            <th>Pause (min)</th>
+            <th>Netto (h)</th>
+            <th>Tätigkeit</th>
+            <th>Aktionen</th>
+        </tr>
+        </thead>
+        <tbody>
+
+        <!-- th:each = Schleife – für jeden Eintrag aus der DB eine Zeile -->
+        <tr th:each="e : ${entries}">
+            <td th:text="${e.datum}">-</td>
+            <td th:text="${e.startzeit}">-</td>
+            <td th:text="${e.endzeit}">-</td>
+            <td th:text="${e.pauseMin}">-</td>
+            <!-- formatDecimal zeigt z.B. 7,50 statt 7.5 -->
+            <td th:text="${#numbers.formatDecimal(e.nettoStunden, 1, 2)}">-</td>
+            <td th:text="${e.taetigkeit}">-</td>
+            <td>
+                <!-- Bearbeiten: öffnet das Formular mit den vorhandenen Daten -->
+                <a th:href="@{/entry/edit/{id}(id=${e.id})}"
+                   class="btn btn-sm btn-warning">✏️</a>
+
+                <!--
+                    Löschen: sendet eine POST-Anfrage an den Controller.
+                    onsubmit fragt vorher nach Bestätigung – verhindert
+                    versehentliches Löschen
+                -->
+                <form th:action="@{/entry/delete/{id}(id=${e.id})}"
+                      method="post" style="display:inline"
+                      onsubmit="return confirm('Eintrag wirklich löschen?')">
+                    <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                </form>
+            </td>
+        </tr>
+
+        <!-- Wird nur angezeigt wenn die Liste leer ist -->
+        <tr th:if="${#lists.isEmpty(entries)}">
+            <td colspan="7" class="text-center text-muted">
+                Keine Einträge vorhanden.
+            </td>
+        </tr>
+
+        </tbody>
+    </table>
+
+    <a th:href="@{/}" class="btn btn-outline-secondary">← Zurück zur Startseite</a>
+
+</div>
+</body>
+</html>
