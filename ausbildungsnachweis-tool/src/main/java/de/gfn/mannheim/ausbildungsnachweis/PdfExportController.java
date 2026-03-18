@@ -3,6 +3,8 @@ package de.gfn.mannheim.ausbildungsnachweis;
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.*;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,15 +18,18 @@ import java.util.List;
 public class PdfExportController {
 
     private final TimeEntryRepository repo;
+    private final AppUserRepository userRepo;
 
-    public PdfExportController(TimeEntryRepository repo) {
+    public PdfExportController(TimeEntryRepository repo, AppUserRepository userRepo) {
         this.repo = repo;
+        this.userRepo = userRepo;
     }
 
     // Wird aufgerufen wenn der Benutzer auf "PDF herunterladen" klickt
     @GetMapping("/export/pdf")
     public void exportPdf(@RequestParam(required = false) Integer year,
                           @RequestParam(required = false) Integer month,
+                          @AuthenticationPrincipal UserDetails userDetails,
                           HttpServletResponse response) throws IOException {
 
         // Wenn kein Monat angegeben → aktuellen Monat nehmen
@@ -32,10 +37,14 @@ public class PdfExportController {
         int y = (year != null) ? year : today.getYear();
         int m = (month != null) ? month : today.getMonthValue();
 
-        // Einträge für den gewählten Monat aus der Datenbank laden
+        // Ersten und letzten Tag des Monats berechnen
         LocalDate from = LocalDate.of(y, m, 1);
         LocalDate to = from.withDayOfMonth(from.lengthOfMonth());
-        List<TimeEntry> entries = repo.findByDatumBetween(from, to);
+
+        // Nur Einträge des eingeloggten Benutzers für diesen Monat laden
+        AppUser currentUser = userRepo.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("Benutzer nicht gefunden"));
+        List<TimeEntry> entries = repo.findByUserAndDatumBetween(currentUser, from, to);
 
         // Gesamtstunden berechnen
         long sumMin = entries.stream().mapToLong(TimeEntry::getNettoMinuten).sum();
@@ -62,12 +71,13 @@ public class PdfExportController {
         titel.setAlignment(Element.ALIGN_CENTER);
         doc.add(titel);
 
-        // Zeitraum-Zeile
-        Paragraph zeitraum = new Paragraph(
-                String.format("Zeitraum: %02d/%d", m, y), normalSchrift);
-        zeitraum.setAlignment(Element.ALIGN_CENTER);
-        zeitraum.setSpacingAfter(15f);
-        doc.add(zeitraum);
+        // Benutzername und Zeitraum anzeigen
+        Paragraph info = new Paragraph(
+                "Benutzer: " + currentUser.getUsername() +
+                        "     Zeitraum: " + String.format("%02d/%d", m, y), normalSchrift);
+        info.setAlignment(Element.ALIGN_CENTER);
+        info.setSpacingAfter(15f);
+        doc.add(info);
 
         // Tabelle mit 5 Spalten erstellen
         PdfPTable tabelle = new PdfPTable(5);
@@ -101,7 +111,7 @@ public class PdfExportController {
                 new Phrase(String.format("%.2f", sumHours), fettSchrift));
         summeWert.setPadding(5);
         tabelle.addCell(summeWert);
-        tabelle.addCell(new Phrase("", normalSchrift)); // Leere Zelle für Tätigkeit-Spalte
+        tabelle.addCell(new Phrase("", normalSchrift));
 
         doc.add(tabelle);
         doc.close(); // PDF fertigstellen und an Browser senden

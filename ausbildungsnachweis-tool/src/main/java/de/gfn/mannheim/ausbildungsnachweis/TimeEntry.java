@@ -59,6 +59,14 @@ public class TimeEntry {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 
+    // Verknüpfung mit dem Benutzer – jeder Eintrag gehört einem Benutzer
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private AppUser user;
+
+    public AppUser getUser() { return user; }
+    public void setUser(AppUser user) { this.user = user; }
+
     // Netto-Minuten = (Ende - Start) - Pause
     public long getNettoMinuten() {
         if (startzeit == null || endzeit == null) return 0;

@@ -24,6 +24,11 @@
                         Erfolgreich ausgeloggt.
                     </div>
 
+                    <!-- Wird angezeigt nach erfolgreicher Ersteinrichtung -->
+                    <div th:if="${param.setup}" class="alert alert-success">
+                        Zugangsdaten gespeichert! Du kannst dich jetzt einloggen.
+                    </div>
+
                     <!--
                         WICHTIG: action="/login", name="username" und name="password"
                         NICHT ändern – Spring Security erwartet genau diese Namen!
@@ -42,6 +47,18 @@
                         <button type="submit" class="btn btn-primary w-100">
                             Einloggen
                         </button>
+
+                        <!-- Trennlinie -->
+                        <hr class="my-3">
+
+                        <!-- Noch kein Konto? -->
+                        <p class="text-center text-muted mb-2" style="font-size: 0.9rem;">
+                            Noch kein Konto?
+                        </p>
+                        <a th:href="@{/setup}" class="btn btn-outline-secondary w-100">
+                            ✏️ Registrieren
+                        </a>
+
                     </form>
 
                 </div>

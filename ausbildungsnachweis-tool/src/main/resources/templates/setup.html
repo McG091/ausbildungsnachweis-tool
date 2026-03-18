@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Ersteinrichtung – Ausbildungsnachweis-Tool</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+
+                    <!-- Banner / Header -->
+                    <div style="background: linear-gradient(135deg, #2E5F8A, #4A90D9);
+                border-radius: 8px 8px 0 0;
+                padding: 28px 20px;">
+                        <h4 class="text-center text-white mb-1" style="font-size: 1.5rem;">
+                            📋 Ausbildungsnachweis-Tool
+                        </h4>
+                        <!--<p class="text-center mb-0" style="color: rgba(255,255,255,0.8); font-size: 0.9rem;">
+                            Entwickelt von Marian Copaciu · GFN Mannheim 2026
+                        </p> -->
+                    </div>
+
+                    <!-- Formular -->
+                    <div class="p-4">
+                        <p class="text-center text-muted mb-4" style="font-size: 0.9rem;">
+                            Willkommen! Bitte lege deine persönlichen
+                            Zugangsdaten fest. Sie werden sicher
+                            in der Datenbank gespeichert.
+                        </p>
+
+                        <!-- Fehlermeldung -->
+                        <div th:if="${error}"
+                             class="alert alert-danger"
+                             th:text="${error}">
+                        </div>
+
+                        <!-- Einrichtungsformular -->
+                        <form th:action="@{/setup}" method="post">
+                            <div class="mb-3">
+                                <label class="form-label">Benutzername</label>
+                                <input type="text"
+                                       name="username"
+                                       class="form-control"
+                                       placeholder="Benutzername eingeben"
+                                       minlength="3"
+                                       required autofocus>
+                                <div class="form-text">Mindestens 3 Zeichen</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Passwort</label>
+                                <input type="password"
+                                       name="password"
+                                       class="form-control"
+                                       placeholder="Mindestens 6 Zeichen"
+                                       minlength="6"
+                                       required>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label">Passwort bestätigen</label>
+                                <input type="password"
+                                       name="passwordConfirm"
+                                       class="form-control"
+                                       placeholder="Passwort wiederholen"
+                                       required>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">
+                                ✅ Zugangsdaten speichern
+                            </button>
+                        </form>
+                    </div>
+
+                </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

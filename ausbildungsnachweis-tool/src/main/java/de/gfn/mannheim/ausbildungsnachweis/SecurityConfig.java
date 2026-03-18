@@ -3,51 +3,55 @@ package de.gfn.mannheim.ausbildungsnachweis;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
-// Konfigurationsklasse: wird einmal beim Start geladen
-// Legt fest wer was sehen darf (Sicherheitsregeln)
+// Sicherheitskonfiguration: Login, Logout und Zugriffsregeln
 @Configuration
 public class SecurityConfig {
+
+    private final AppUserRepository userRepo;
+
+    public SecurityConfig(AppUserRepository userRepo) {
+        this.userRepo = userRepo;
+    }
 
     // Definiert die Sicherheitsregeln für alle HTTP-Anfragen
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        // Login-Seite und WebJars (Bootstrap) ohne Login erreichbar
-                        .requestMatchers("/login", "/webjars/**").permitAll()
-                        .anyRequest().authenticated() // Alles andere nur nach Login
+                        // Setup- und Login-Seite sowie WebJars ohne Login erreichbar
+                        .requestMatchers("/setup", "/login", "/webjars/**").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
-                        .loginPage("/login")               // Eigene Login-Seite verwenden
-                        .loginProcessingUrl("/login")      // Spring verarbeitet das Formular hier
-                        .defaultSuccessUrl("/", true)      // Nach Login → Startseite
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/", true)
                         .permitAll()
                 )
                 .logout(logout -> logout
-                        .logoutSuccessUrl("/login?logout") // Nach Logout → Login-Seite
+                        .logoutSuccessUrl("/login?logout")
                         .permitAll()
                 );
         return http.build();
     }
 
-    // Legt den Benutzer fest
-    // Benutzername: azubi | Passwort: azubi123
+    // Lädt den Benutzer aus der MySQL-Datenbank statt aus dem Arbeitsspeicher
+    // Spring Security ruft diese Methode automatisch beim Login auf
     @Bean
-    public UserDetailsService users(PasswordEncoder encoder) {
-        return new InMemoryUserDetailsManager(
-                User.builder()
-                        .username("azubi")
-                        .password(encoder.encode("azubi123")) // Passwort wird verschlüsselt
+    public UserDetailsService userDetailsService() {
+        return username -> userRepo.findByUsername(username)
+                .map(user -> org.springframework.security.core.userdetails.User
+                        .withUsername(user.getUsername())
+                        .password(user.getPassword())  // bereits BCrypt-verschlüsselt
                         .roles("USER")
-                        .build()
-        );
+                        .build())
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "Benutzer nicht gefunden: " + username));
     }
 
     // BCrypt: sicherer Algorithmus zum Verschlüsseln von Passwörtern

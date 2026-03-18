@@ -1,5 +1,7 @@
 package de.gfn.mannheim.ausbildungsnachweis;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -12,13 +14,22 @@ import java.util.List;
 @Controller
 public class EntryController {
 
-    // Datenbankzugriff über Spring Data JPA
+    // Datenbankzugriff für Einträge und Benutzer über Spring Data JPA
     private final TimeEntryRepository repo;
+    private final AppUserRepository userRepo;
 
-    // Spring setzt das Repository automatisch ein (Constructor Injection)
-    // Wir müssen das Objekt nicht selbst erstellen – Spring macht das für uns
-    public EntryController(TimeEntryRepository repo) {
+    // Spring setzt beide Repositories automatisch ein (Constructor Injection)
+    public EntryController(TimeEntryRepository repo, AppUserRepository userRepo) {
         this.repo = repo;
+        this.userRepo = userRepo;
+    }
+
+    // Hilfsmethode: gibt den aktuell eingeloggten Benutzer aus der DB zurück
+    // @AuthenticationPrincipal liefert Spring Security automatisch den eingeloggten User
+    // So wissen wir immer wer gerade angemeldet ist
+    private AppUser getCurrentUser(UserDetails userDetails) {
+        return userRepo.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("Benutzer nicht gefunden"));
     }
 
     // ─── NEUER EINTRAG ──────────────────────────────────────────────────────
@@ -35,9 +46,15 @@ public class EntryController {
 
     // Speichert den neuen Eintrag nach dem Absenden (POST = Daten schicken)
     @PostMapping("/entry/new")
-    public String saveEntry(@ModelAttribute("entry") TimeEntry entry, Model model) {
+    public String saveEntry(@ModelAttribute("entry") TimeEntry entry,
+                            @AuthenticationPrincipal UserDetails userDetails,
+                            Model model) {
         // Erst validieren – wenn Fehler gefunden, Formular erneut anzeigen
         if (!validate(entry, model)) return "entry-form";
+
+        // Eintrag dem eingeloggten Benutzer zuordnen
+        // So weiß die DB welcher User diesen Eintrag erstellt hat
+        entry.setUser(getCurrentUser(userDetails));
         repo.save(entry); // Eintrag in MySQL speichern
         return "redirect:/entries"; // Nach dem Speichern zur Liste weiterleiten
     }
@@ -45,12 +62,20 @@ public class EntryController {
     // ─── EINTRAG BEARBEITEN ─────────────────────────────────────────────────
 
     // Zeigt das Formular mit den vorhandenen Daten zum Bearbeiten
-    // {id} in der URL wird automatisch als Parameter übergeben
     @GetMapping("/entry/edit/{id}")
-    public String editForm(@PathVariable Long id, Model model) {
+    public String editForm(@PathVariable Long id,
+                           @AuthenticationPrincipal UserDetails userDetails,
+                           Model model) {
         // Eintrag aus DB laden – wenn ID nicht existiert, Fehler werfen
         TimeEntry entry = repo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ungültige ID: " + id));
+
+        // Sicherheitsprüfung: nur eigene Einträge dürfen bearbeitet werden
+        // Verhindert dass User A die Einträge von User B bearbeitet
+        if (!entry.getUser().getUsername().equals(userDetails.getUsername())) {
+            return "redirect:/entries";
+        }
+
         model.addAttribute("entry", entry);
         return "entry-form"; // Dasselbe Formular wie beim Erstellen verwenden
     }
@@ -59,10 +84,14 @@ public class EntryController {
     @PostMapping("/entry/edit/{id}")
     public String updateEntry(@PathVariable Long id,
                               @ModelAttribute("entry") TimeEntry entry,
+                              @AuthenticationPrincipal UserDetails userDetails,
                               Model model) {
         if (!validate(entry, model)) return "entry-form";
+
         // ID manuell setzen – so weiß JPA dass es updaten soll, nicht neu einfügen
         entry.setId(id);
+        // Benutzer beibehalten – darf beim Update nicht verloren gehen
+        entry.setUser(getCurrentUser(userDetails));
         repo.save(entry);
         return "redirect:/entries";
     }
@@ -71,17 +100,26 @@ public class EntryController {
 
     // POST statt GET – damit man nicht aus Versehen durch einen Link löscht
     @PostMapping("/entry/delete/{id}")
-    public String deleteEntry(@PathVariable Long id) {
-        repo.deleteById(id); // Direkt aus der Datenbank löschen
+    public String deleteEntry(@PathVariable Long id,
+                              @AuthenticationPrincipal UserDetails userDetails) {
+        TimeEntry entry = repo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Ungültige ID: " + id));
+
+        // Sicherheitsprüfung: nur eigene Einträge dürfen gelöscht werden
+        if (entry.getUser().getUsername().equals(userDetails.getUsername())) {
+            repo.deleteById(id);
+        }
         return "redirect:/entries";
     }
 
     // ─── ALLE EINTRÄGE ANZEIGEN ─────────────────────────────────────────────
 
     @GetMapping("/entries")
-    public String listEntries(Model model) {
-        // findAll() lädt alle Einträge aus der DB
-        model.addAttribute("entries", repo.findAll());
+    public String listEntries(@AuthenticationPrincipal UserDetails userDetails,
+                              Model model) {
+        // Nur Einträge des eingeloggten Benutzers laden – nicht alle aus der DB
+        AppUser currentUser = getCurrentUser(userDetails);
+        model.addAttribute("entries", repo.findByUser(currentUser));
         return "entries"; // templates/entries.html laden
     }
 
@@ -92,6 +130,7 @@ public class EntryController {
     @GetMapping("/month")
     public String monthView(@RequestParam(required = false) Integer year,
                             @RequestParam(required = false) Integer month,
+                            @AuthenticationPrincipal UserDetails userDetails,
                             Model model) {
 
         LocalDate today = LocalDate.now();
@@ -102,8 +141,9 @@ public class EntryController {
         LocalDate from = LocalDate.of(y, m, 1);
         LocalDate to = from.withDayOfMonth(from.lengthOfMonth());
 
-        // Nur Einträge für diesen Monat aus der DB holen
-        List<TimeEntry> entries = repo.findByDatumBetween(from, to);
+        // Nur Einträge des eingeloggten Benutzers für diesen Monat laden
+        AppUser currentUser = getCurrentUser(userDetails);
+        List<TimeEntry> entries = repo.findByUserAndDatumBetween(currentUser, from, to);
 
         // Netto-Minuten aller Einträge zusammenzählen
         long sumMin = 0;
