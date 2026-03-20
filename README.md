@@ -17,6 +17,8 @@ berechnet und den fertigen Nachweis als PDF exportiert.
 - Einträge bearbeiten und löschen
 - Monatsübersicht mit Stundenübersicht
 - PDF-Export des monatlichen Ausbildungsnachweises
+- Benutzerverwaltung – eigene Zugangsdaten per Registrierung festlegen
+- Datentrennung – jeder Benutzer sieht nur seine eigenen Einträge
 - Login/Logout
 
 ## Technologien
@@ -41,9 +43,9 @@ spring.datasource.password=DEIN_PASSWORT
 ```
 3. Anwendung starten – Tabellen werden automatisch erstellt
 4. Browser: `http://localhost:8080`
-5. Login: `azubi` / `azubi123`
+5. Beim ersten Start: Button **„Registrieren"** anklicken → eigenen Benutzernamen und Passwort festlegen
+6. Ab dem zweiten Start: direkt mit den gewählten Zugangsdaten einloggen
 
 ## Status
 
-In Entwicklung – Abgabe 30.03.2026
-```
+Abgeschlossen – Abgabe 30.03.2026
