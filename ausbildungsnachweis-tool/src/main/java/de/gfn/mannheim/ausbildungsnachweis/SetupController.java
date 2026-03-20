@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-// Dieser Controller wird nur beim ersten Start aufgerufen
-// Er ermöglicht dem Benutzer, seinen eigenen Username und sein Passwort festzulegen
+// Dieser Controller ermöglicht die Registrierung neuer Benutzer
+// Erreichbar über den "Registrieren" Button auf der Login-Seite
 @Controller
 public class SetupController {
 
@@ -20,17 +20,13 @@ public class SetupController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // Zeigt die Einrichtungsseite an – nur wenn noch kein Benutzer existiert
+    // Zeigt die Registrierungsseite an
     @GetMapping("/setup")
-    public String setupForm(Model model) {
-        // Wenn bereits ein Benutzer existiert → zur Login-Seite weiterleiten
-        if (userRepo.count() > 0) {
-            return "redirect:/login";
-        }
+    public String setupForm() {
         return "setup"; // templates/setup.html
     }
 
-    // Speichert den neuen Benutzer nach dem Absenden des Formulars
+    // Speichert den neuen Benutzer nach dem Absenden
     @PostMapping("/setup")
     public String setupSave(@RequestParam String username,
                             @RequestParam String password,
@@ -53,13 +49,19 @@ public class SetupController {
             return "setup";
         }
 
-        // Benutzer erstellen und Passwort verschlüsselt speichern
+        // Prüfen ob Benutzername bereits vergeben ist
+        if (userRepo.existsByUsername(username.trim())) {
+            model.addAttribute("error", "Dieser Benutzername ist bereits vergeben.");
+            return "setup";
+        }
+
+        // Neuen Benutzer erstellen und Passwort verschlüsselt speichern
         AppUser user = new AppUser();
         user.setUsername(username.trim());
-        user.setPassword(passwordEncoder.encode(password)); // BCrypt-Verschlüsselung
+        user.setPassword(passwordEncoder.encode(password));
         userRepo.save(user);
 
-        // Nach erfolgreicher Einrichtung → zur Login-Seite
+        // Nach erfolgreicher Registrierung zur Login-Seite
         return "redirect:/login?setup";
     }
 }
